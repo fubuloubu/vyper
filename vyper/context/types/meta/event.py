@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import List
+from typing import Dict, List
 
 from vyper import ast as vy_ast
 from vyper.ast.validation import validate_call_args
@@ -85,3 +85,30 @@ class Event:
         validate_call_args(node, len(self.arguments))
         for arg, expected in zip(node.args, self.arguments.values()):
             validate_expected_type(arg, expected)
+
+    @classmethod
+    def from_abi(cls, abi: Dict) -> "Event":
+        arguments: OrderedDict = OrderedDict()
+        indexed: List[bool] = []
+        return cls(abi["name"], arguments, indexed)
+
+    def to_abi(self) -> Dict:
+        abi = {
+            "name": self.name,
+            "type": "event",
+            "anonymous": False,
+        }
+
+        inputs = []
+        for arg_name, type_def in self.arguments.items():
+            # TupleDefinition/StructDefinition.to_abi_type() returns List of (name, type) tuples
+            inputs.append(
+                {
+                    "name": arg_name,
+                    "type": type_def.to_abi_type(),
+                    "indexed": self.indexed[arg_name],
+                }
+            )
+        abi["inputs"] = inputs
+
+        return abi

@@ -7,6 +7,7 @@ from vyper.ast.validation import validate_call_args
 from vyper.context.namespace import get_namespace
 from vyper.context.types.bases import BaseTypeDefinition, DataLocation
 from vyper.context.types.indexable.sequence import TupleDefinition
+from vyper.context.types.meta.struct import StructDefinition
 from vyper.context.types.utils import (
     StringEnum,
     check_constant,
@@ -156,6 +157,43 @@ class ContractFunction(BaseTypeDefinition):
             function_visibility=FunctionVisibility.EXTERNAL,
             state_mutability=StateMutability.from_abi(abi),
         )
+
+    def to_abi(self) -> Dict:
+        abi = {
+            "stateMutability": self.mutability.value,
+        }
+
+        if self.name == "__init__":
+            abi["type"] = "constructor"
+        else:
+            abi["name"] = self.name
+            abi["type"] = "function"
+
+        inputs = []
+        for arg_name, type_def in self.arguments.items():
+            if isinstance(self.return_type, (TupleDefinition, StructDefinition)):
+                inputs.append(
+                    {
+                        "name": arg_name,
+                        "type": "tuple",
+                        "components": self.return_type.to_abi_type(),
+                    }
+                )
+            else:
+                inputs.append({"name": arg_name, "type": type_def.to_abi_type()})
+        abi["inputs"] = inputs
+
+        outputs = []
+        if self.return_type:
+            if isinstance(self.return_type, (TupleDefinition, StructDefinition)):
+                outputs.append(
+                    {"name": "out", "type": "tuple", "components": self.return_type.to_abi_type(),}
+                )
+            else:
+                outputs.append({"name": "out", "type": self.return_type.to_abi_type()})
+        abi["outputs"] = outputs
+
+        return abi
 
     @classmethod
     def from_FunctionDef(

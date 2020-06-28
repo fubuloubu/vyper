@@ -1,7 +1,7 @@
 import copy
 from collections import OrderedDict
 from enum import Enum
-from typing import Any, Dict, Optional, Tuple, Type, Union
+from typing import Any, Dict, Optional, List, Tuple, Type, Union
 
 from vyper import ast as vy_ast
 from vyper.context.types.abstract import AbstractDataType
@@ -365,6 +365,9 @@ class BaseTypeDefinition:
             self.validate_numeric_op(node)
 
     def get_signature(self) -> Tuple[Tuple, Optional["BaseTypeDefinition"]]:
+        raise CompilerPanic("Method must be implemented by the inherited class")
+
+    def get_abi_type(self) -> Union[str, Tuple[Tuple[str, str]]]:
         raise CompilerPanic("Method must be implemented by the inherited class")
 
     def compare_signature(self, other: "BaseTypeDefinition") -> bool:
